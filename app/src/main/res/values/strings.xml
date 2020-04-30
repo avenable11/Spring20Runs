@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Spring20Runs</string>
+    <string name="coordinatesTextView">Coordinates Go Here</string>
+    <string name="title_activity_maps">Map</string>
+</resources>
