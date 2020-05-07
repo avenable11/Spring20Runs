@@ -3,6 +3,7 @@ package edu.ivytech.spring20runs;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 
 import android.Manifest;
 import android.app.Activity;
@@ -13,6 +14,7 @@ import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
+import android.view.View;
 import android.widget.TextView;
 
 import com.google.android.gms.common.api.ApiException;
@@ -29,25 +31,31 @@ import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.snackbar.Snackbar;
 
-public class LocationViewerActivity extends AppCompatActivity {
+public class LocationViewerActivity extends SingleFragmentActivity {
     private static final int PERMISSION_REQUEST_ACCESS_FINE_LOCATION = 1;
     private static final int GPS_HIGH_ACCURACY_REQUEST = 2;
-    public static final int UPDATE_INTERVAL = 5000;
+    /*public static final int UPDATE_INTERVAL = 5000;
     public static final int FASTEST_UPDATE_INTERVAL = 2000;
 
     private TextView coordinatesTextView;
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private LocationRequest mLocationRequest;
-    private LocationCallback mLocationCallback;
+    private LocationCallback mLocationCallback;*/
 
+
+    @Override
+    protected Fragment createFragment() {
+        return new StopwatchFragment();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_location_viewer);
-        coordinatesTextView = findViewById(R.id.coordinatesTextView);
-        mLocationRequest = LocationRequest.create()
+       // setContentView(R.layout.activity_location_viewer);
+       // coordinatesTextView = findViewById(R.id.coordinatesTextView);
+        /*mLocationRequest = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(UPDATE_INTERVAL)
                 .setFastestInterval(FASTEST_UPDATE_INTERVAL);
@@ -57,7 +65,7 @@ public class LocationViewerActivity extends AppCompatActivity {
                 super.onLocationResult(locationResult);
                 onLocationChanged(locationResult.getLastLocation());
             }
-        };
+        };*/
     }
 
     @Override
@@ -66,11 +74,7 @@ public class LocationViewerActivity extends AppCompatActivity {
         checkLocationPermission();
     }
 
-    @Override
-    protected void onStop() {
-        mFusedLocationProviderClient.removeLocationUpdates(mLocationCallback);
-        super.onStop();
-    }
+
 
     private void checkLocationPermission() {
         if (Build.VERSION.SDK_INT > 22) {
@@ -79,7 +83,71 @@ public class LocationViewerActivity extends AppCompatActivity {
                 requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                         PERMISSION_REQUEST_ACCESS_FINE_LOCATION);
             }
+            checkGPSAccuracy();
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case PERMISSION_REQUEST_ACCESS_FINE_LOCATION:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    //requestLocation();
+                    Snackbar.make(findViewById(R.id.fragment_container),
+                            R.string.location_permission_granted,Snackbar.LENGTH_SHORT).show();
+                }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        final LocationSettingsStates states = LocationSettingsStates.fromIntent(data);
+        switch (requestCode) {
+            case GPS_HIGH_ACCURACY_REQUEST:
+                switch(resultCode) {
+                    case Activity.RESULT_OK:
+                        //requestLocation();
+                        Snackbar.make(findViewById(R.id.fragment_container),
+                                R.string.high_accuracy_GPS,Snackbar.LENGTH_SHORT).show();
+                        break;
+                    case Activity.RESULT_CANCELED:
+                        Snackbar.make(findViewById(R.id.fragment_container),
+                                R.string.no_gps, Snackbar.LENGTH_INDEFINITE)
+                                .setAction("Action", new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        checkGPSAccuracy();
+                                    }
+                                }).show();
+                        break;
+                }
+        }
+    }
+
+    /*private void requestLocation() {
+        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        mFusedLocationProviderClient.getLastLocation()
+                .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        if(location != null) {
+                            coordinatesTextView.setText(location.getLatitude() + "|"
+                                    + location.getLongitude());
+                        }
+                    }
+                });
+        mFusedLocationProviderClient.requestLocationUpdates(mLocationRequest,mLocationCallback, Looper.myLooper());
+    }
+
+    public void onLocationChanged(Location location) {
+        coordinatesTextView.setText(location.getLatitude() + "|"
+                + location.getLongitude());
+    }
+    */
+    private void checkGPSAccuracy() {
         LocationRequest locationRequest = LocationRequest.create();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
@@ -107,63 +175,13 @@ public class LocationViewerActivity extends AppCompatActivity {
                             }
                             break;
                         case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-                            coordinatesTextView.setText("Unable to turn on GPS");
+                            Snackbar.make(findViewById(R.id.fragment_container),
+                                    R.string.no_gps, Snackbar.LENGTH_INDEFINITE).show();
                             break;
                     }
 
                 }
             }
         });
-
-        requestLocation();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case PERMISSION_REQUEST_ACCESS_FINE_LOCATION:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    requestLocation();
-                }
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        final LocationSettingsStates states = LocationSettingsStates.fromIntent(data);
-        switch (requestCode) {
-            case GPS_HIGH_ACCURACY_REQUEST:
-                switch(resultCode) {
-                    case Activity.RESULT_OK:
-                        requestLocation();
-                        break;
-                    case Activity.RESULT_CANCELED:
-                        coordinatesTextView.setText("Unable to turn on GPS");
-                        break;
-                }
-        }
-    }
-
-    private void requestLocation() {
-        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-        mFusedLocationProviderClient.getLastLocation()
-                .addOnSuccessListener(this, new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        if(location != null) {
-                            coordinatesTextView.setText(location.getLatitude() + "|"
-                                    + location.getLongitude());
-                        }
-                    }
-                });
-        mFusedLocationProviderClient.requestLocationUpdates(mLocationRequest,mLocationCallback, Looper.myLooper());
-    }
-
-    public void onLocationChanged(Location location) {
-        coordinatesTextView.setText(location.getLatitude() + "|"
-                + location.getLongitude());
     }
 }

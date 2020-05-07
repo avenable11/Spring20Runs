@@ -6,6 +6,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 
+import java.util.ArrayList;
+
 import edu.ivytech.spring20runs.database.RunDBSchema.LocationTable;
 
 public class RunsDB {
@@ -41,5 +43,24 @@ public class RunsDB {
         Cursor cursor = mDatabase.query(LocationTable.NAME,
                 null,whereClause,whereArgs,null, null, null);
         return new RunCursorWrapper(cursor);
+    }
+
+    public ArrayList<Location> getLocations() {
+        ArrayList<Location> list = new ArrayList<>();
+        RunCursorWrapper cursor = queryLocations(null, null);
+        try {
+            cursor.moveToFirst();
+            while(!cursor.isAfterLast()) {
+                list.add(cursor.getLocation());
+                cursor.moveToNext();
+            }
+        } finally {
+            cursor.close();
+        }
+        return list;
+    }
+
+    public void deleteLocations() {
+        mDatabase.delete(LocationTable.NAME, null, null);
     }
 }
